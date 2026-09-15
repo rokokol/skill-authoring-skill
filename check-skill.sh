@@ -1,60 +1,61 @@
 #!/usr/bin/env bash
-# The gate a skill repository needs, in one file that travels. It proves that SKILL.md is
-# loadable at all, that every file under references/ is reachable from SKILL.md by
-# following links, and that every relative link and heading anchor in the docs resolves —
-# then proves each of those checks able to fail, on throwaway copies of the repository
-# with one planted defect each, every time it runs. A check that has never been red is a
-# decoration, and a copy of this file is falsified in its own repository on every run.
-#
-#   check-skill.sh [--strict] [-n NAME] [DIR]
-#
-# DIR is the skill's repository (default: the current directory). -n NAME is what the
-# readme and the install symlink call the skill, which the frontmatter must agree with.
-# Exit 1 with `check-skill: <what>` on the first finding, 2 on a usage error.
-#
-# Two tiers. An error is what stops a skill loading or leaves a reference unread, and it
-# is the first finding: exit 1, the message on stderr. A warning is a rule of the family
-# the skill breaks without breaking: `check-skill: warning: FILE:LINE: ID: what` on
-# stdout, the exit code unchanged, and under GITHUB_ACTIONS a ::warning annotation as
-# well. --strict turns every warning into a finding: the lines go to stderr too and the
-# run exits 1 after the scan.
-#
-# A line that is right for a reason is excused in check-skill.allow beside SKILL.md, a
-# file no agent loads: one entry per line, `ID PATH [TEXT]`, excusing warnings of ID in
-# PATH, or only those on lines that contain TEXT when it is given; `#` opens a comment.
-# An entry that excuses nothing is an error, like a malformed one: left in place, it
-# would silently excuse the next real violation that lands on that path.
-#
-# The warnings, by the id each line carries:
-#   layout-section     a Layout heading in SKILL.md or a reference: readme content,
-#                      loaded on every request
-#   install-section    an Install, Installation, Setup or Checkout heading in SKILL.md
-#   history-wording    used to, previously, formerly: a rule is written as acting
-#   pseudo-citation    a path/to/file.ext:NN citation into a checkout the reader may lack
-#   discovery-date     a date beside found, fixed, decided…: when a defect was found
-#                      bounds nothing
-#   cross-skill-link   a runtime link to another skill's repository, or outside this one
-#   harness-file       CLAUDE.md, GEMINI.md or .cursorrules named alone, without
-#                      AGENTS.md beside it
-#   prompt-idiom       MUST or CRITICAL in capitals, IMPORTANT:, take a deep breath,
-#                      comprehensive, Red Flags
-#   model-id           a concrete model id where an example should say <model>
-#   recheck-instruction  double-check, verify your work, a reviewing agent as a step: a
-#                      review happens when the user asks, not on the skill's say-so
-#   unverified-source  a fetch-failure note beside a claim
-#   trigger-duplicate  a trigger listed twice in the description
-#   readme-badge       the readme's badge row does not open with the Agent Skill badge
-#   harness-badge      the readme carries a harness badge, claiming a dependency
-#
 # Nothing here reaches the network. Needs bash 3.2 and POSIX tools only, so it runs on a
 # macOS runner unchanged. It has no repo-specific part: another repository takes it through
 # the vendoring cascade (references/bump-cascade.md in https://github.com/rokokol/ci-skill)
 # from https://github.com/rokokol/skill-authoring-skill, never edits its copy in place,
-# and calls it from its own gate.
+# and calls it from its own gate. What it accepts is usage() below, and nowhere else
 set -euo pipefail
 
-# The whole header, however long it grows: up to the first line that is not a comment
-usage() { sed -n '2,/^[^#]/p' "${BASH_SOURCE[0]}" | sed '$d; s/^# \{0,1\}//'; }
+usage() {
+  cat <<'EOF'
+The gate a skill repository needs, in one file that travels. It proves that SKILL.md is
+loadable at all, that every file under references/ is reachable from SKILL.md by
+following links, and that every relative link and heading anchor in the docs resolves —
+then proves each of those checks able to fail, on throwaway copies of the repository
+with one planted defect each, every time it runs. A check that has never been red is a
+decoration, and a copy of this file is falsified in its own repository on every run.
+
+  check-skill.sh [--strict] [-n NAME] [DIR]
+
+DIR is the skill's repository (default: the current directory). -n NAME is what the
+readme and the install symlink call the skill, which the frontmatter must agree with.
+Exit 1 with `check-skill: <what>` on the first finding, 2 on a usage error.
+
+Two tiers. An error is what stops a skill loading or leaves a reference unread, and it
+is the first finding: exit 1, the message on stderr. A warning is a rule of the family
+the skill breaks without breaking: `check-skill: warning: FILE:LINE: ID: what` on
+stdout, the exit code unchanged, and under GITHUB_ACTIONS a ::warning annotation as
+well. --strict turns every warning into a finding: the lines go to stderr too and the
+run exits 1 after the scan.
+
+A line that is right for a reason is excused in check-skill.allow beside SKILL.md, a
+file no agent loads: one entry per line, `ID PATH [TEXT]`, excusing warnings of ID in
+PATH, or only those on lines that contain TEXT when it is given; `#` opens a comment.
+An entry that excuses nothing is an error, like a malformed one: left in place, it
+would silently excuse the next real violation that lands on that path.
+
+The warnings, by the id each line carries:
+  layout-section     a Layout heading in SKILL.md or a reference: readme content,
+                     loaded on every request
+  install-section    an Install, Installation, Setup or Checkout heading in SKILL.md
+  history-wording    used to, previously, formerly: a rule is written as acting
+  pseudo-citation    a path/to/file.ext:NN citation into a checkout the reader may lack
+  discovery-date     a date beside found, fixed, decided…: when a defect was found
+                     bounds nothing
+  cross-skill-link   a runtime link to another skill's repository, or outside this one
+  harness-file       CLAUDE.md, GEMINI.md or .cursorrules named alone, without
+                     AGENTS.md beside it
+  prompt-idiom       MUST or CRITICAL in capitals, IMPORTANT:, take a deep breath,
+                     comprehensive, Red Flags
+  model-id           a concrete model id where an example should say <model>
+  recheck-instruction  double-check, verify your work, a reviewing agent as a step: a
+                     review happens when the user asks, not on the skill's say-so
+  unverified-source  a fetch-failure note beside a claim
+  trigger-duplicate  a trigger listed twice in the description
+  readme-badge       the readme's badge row does not open with the Agent Skill badge
+  harness-badge      the readme carries a harness badge, claiming a dependency
+EOF
+}
 
 self=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/$(basename -- "${BASH_SOURCE[0]}")
 want_name=""

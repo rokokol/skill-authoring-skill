@@ -136,7 +136,7 @@ full_stopped() { # full_stopped FILE -> the lines of prose that end on a full st
 }
 
 check_behaviour() {
-  echo "== the checker keeps its header's promises: its help, its flags, its codes, its bash 3.2 claim"
+  echo "== the checker keeps its promises: its help, its flags, its codes, its bash 3.2 claim"
   # The bash-best-practices skill's checker, vendored: it reads check-skill.sh's flag parser
   # and exit codes out of the source and holds the help to them, and greps the script for
   # constructs newer than the bash 3.2 its header claims — a proxy, with the proof being
@@ -157,11 +157,11 @@ check_behaviour() {
   # exit 1, which a gate reads as a finding
   status=0
   out=$(skill -n 2>&1) || status=$?
-  ((status == 2)) || fail "check-skill.sh -n with no name exited $status, where its header promises 2 for a usage error"
+  ((status == 2)) || fail "check-skill.sh -n with no name exited $status, where its help promises 2 for a usage error"
   grep -q '^check-skill: -n needs a name' <<<"$out" || fail "check-skill.sh -n with no name did not say what is missing: $out"
-  # The help is the header, whole: every warning id the script prints is named in it, and
-  # the exit codes are reached. Read once into a variable: piped into grep -q, the help's
-  # sed is killed by SIGPIPE at the first match, and pipefail would call that a failure
+  # The help names every warning id the script prints, and reaches the exit codes. Read
+  # once into a variable: piped into grep -q, whatever writes the help can be killed by
+  # SIGPIPE at the first match, and pipefail would call that a failure
   local help
   help=$(skill --help)
   grep -q '^Exit 1 with' <<<"$help" || fail "--help stops before the exit codes"
