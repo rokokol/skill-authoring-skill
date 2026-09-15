@@ -23,7 +23,7 @@ The changelog records that the change happened and the commit body records why. 
 
 A `sources.md` reference, where a skill keeps one, holds only primary sources that were successfully read: the manual page, the standard, the upstream policy document, the measurement. It is not a table of neighbouring repositories the rules were mined from, and not a list of adjacent skills
 
-- **A URL verifies nothing by itself.** A claim is published after its source was read; if the fetch failed, the claim is removed or parked as an unfinished task outside the artifact until the source can be checked
+- **A URL verifies nothing by itself.** A claim is published after its source was read; if the source could not be reached, the claim is removed or parked as an unfinished task outside the artifact until the source can be checked
 - **Never write a fetch-failure note beside a claim.** `fetch failed while writing this; the page is the canonical location` tells the reader the skill is teaching an unchecked statement and calls it a citation
 - **Dependency provenance is development text.** Which repository a vendored checker comes from, which skill's harness a script was adapted from: a script comment, the README's development section, a maintainer document or the vendor lock, where the reader needs it to update the copy. There it is a direct URL, not a bare skill name, because a name cannot be followed
 

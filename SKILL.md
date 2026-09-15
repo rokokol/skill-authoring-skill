@@ -21,7 +21,7 @@ A skill is loaded whole into every conversation that reaches for it, so each lin
 
 - **A rule is written as acting.** It keeps the rule, the mechanism, a minimal reproduction, the observable result and the verified primary source where one is needed. Discovery history, the names of repositories or checkers that once broke, incident dates and `used to` belong to git and the changelog. See [references/evidence.md](references/evidence.md)
 - **No pseudo-citation into another checkout.** `other-repo/path:line` assumes a checkout that may be absent and a line that drifts; a resolvable local link between two references is fine, because it lands on the one place that holds the mechanism
-- **A source is cited only after it was read.** A note that the fetch failed does not verify the claim beside it. An unverified claim is removed or parked as an unfinished task outside the artifact. See [references/evidence.md](references/evidence.md#what-a-source-is)
+- **A source is cited only after it was read.** A note that the source could not be reached does not verify the claim beside it. An unverified claim is removed or parked as an unfinished task outside the artifact. See [references/evidence.md](references/evidence.md#what-a-source-is)
 - **A public skill never reads a private repository at runtime.** Local style first, then a self-contained default; a private path may only stand as a configuration the user owns
 
 ## Description and triggers
