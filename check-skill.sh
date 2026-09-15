@@ -419,8 +419,10 @@ if [[ "$triggers" != "$desc" ]]; then
   while IFS= read -r dup; do
     [[ -n "$dup" ]] || continue
     warn SKILL.md "$dline" trigger-duplicate "'$dup' is listed twice"
+  # Bytes, not the locale's collation: macOS's uniq compares in it, and there every
+  # Cyrillic trigger collates equal to every other of the same word count — PITFALLS.md
   done < <(printf '%s\n' "$triggers" | tr ',' '\n' | sed 's/^[ \t]*//; s/[ \t.]*$//' |
-    LC_ALL=C tr '[:upper:]' '[:lower:]' | grep -v '^$' | sort | uniq -d)
+    LC_ALL=C tr '[:upper:]' '[:lower:]' | grep -v '^$' | LC_ALL=C sort | LC_ALL=C uniq -d)
 fi
 
 # The readme's badge row says what the skill depends on. It opens with the Agent Skill

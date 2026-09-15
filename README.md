@@ -9,6 +9,7 @@
 ![Nix](https://img.shields.io/badge/Nix-flake-7EBAE4?style=flat&logo=nixos&logoColor=white)
 [![license](https://img.shields.io/badge/MIT-3DA639?style=flat)](LICENSE)
 [![deviations](https://img.shields.io/badge/docs-deviations-555?style=flat)](DEVIATIONS.md)
+[![pitfalls](https://img.shields.io/badge/docs-pitfalls-555?style=flat)](PITFALLS.md)
 [![ci](https://github.com/rokokol/skill-authoring-skill/actions/workflows/build.yml/badge.svg)](https://github.com/rokokol/skill-authoring-skill/actions/workflows/build.yml)
 [![macos](https://github.com/rokokol/skill-authoring-skill/actions/workflows/macos.yml/badge.svg)](https://github.com/rokokol/skill-authoring-skill/actions/workflows/macos.yml)
 
@@ -79,4 +80,5 @@ check-sh.sh           holds check-skill.sh's help to its code and its bash 3.2 c
 vendor-sync.sh        keeps the vendored copies byte-equal to their source, vendored from the ci skill
 tests/fixtures/       the known-bad workflow actionlint must reject
 DEVIATIONS.md         why warnings go to stdout
+PITFALLS.md           the traps met on the way, with the way through each
 ```

@@ -90,7 +90,7 @@ check_lint() {
   # (https://github.com/rokokol/create-readme-skill), which cannot be assumed present in
   # CI, so their machine-decidable part is spelled here — over every doc the skill ships,
   # not the readme alone: SKILL.md and the references are what an agent reads
-  local docs=(README.md SKILL.md CHANGELOG.md DEVIATIONS.md references/*.md) doc wrapped stopped
+  local docs=(README.md SKILL.md CHANGELOG.md DEVIATIONS.md PITFALLS.md references/*.md) doc wrapped stopped
   for doc in "${docs[@]}"; do
     wrapped=$(hard_wrapped "$doc")
     [[ -z "$wrapped" ]] ||
