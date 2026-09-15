@@ -6,7 +6,6 @@ name: vendor-sync
 # repository's real build workflow against it, and lands it only on green; red leaves the
 # dated branch standing, with the new copies on it, for a human to look at. How it works:
 # references/bump-cascade.md in https://github.com/rokokol/ci-skill
-# (changed for one commit so GitHub registers this workflow; the next commit restores it)
 on:
   schedule:
     # Ahead of any dependency bump in the same repository, so a week's fixes to the shared
