@@ -20,6 +20,7 @@ The loader caps the description; the gate counts characters rather than bytes, s
 
 - **An example names `<model>`.** The agent copies an example verbatim, so `claude-<family>-<n>` in a commit trailer or an API call pins every user to that release. A placeholder is copied as a placeholder and filled in by the agent that knows which model it is
 - **No idiom of old prompts.** `MUST` and `CRITICAL` in capitals, `take a deep breath`, `comprehensive`, `Red Flags - STOP`: each was a way to shout at a model that needed shouting at. A current model reads emphasis as a signal that something is unusual, so emphasis is used once, where something is, and carries its reason on the same line
+- **No instruction to check again, and no scheduled reviewer.** `Double-check your work`, `verify your answer`, `have a subagent review the result`: the model already verifies as it works, so the line only costs tokens, and a second agent's run is a price the user chooses to pay, by asking for a review, never a step the skill prescribes
 - **A rule and its reason on one line**, the mechanism in a reference. A rule without its reason is followed to the letter and broken in point
 
 ## Portability

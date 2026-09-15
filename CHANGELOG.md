@@ -12,6 +12,10 @@ Kept in the shape of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), d
 - `check.sh`, the gate: lint of everything the repository ships, the vendored copies held to their lock, the docs held to the family's one-paragraph-per-line and no-trailing-full-stop rules, `check-skill.sh` held to its own header and run on this repository, and its `-n` usage probe, which the ci skill's gate ran while it owned the file
 - `DEVIATIONS.md`, recording why warnings go to stdout rather than stderr, and `PITFALLS.md`, recording that macOS collates Cyrillic strings as equal and `uniq` compares in that collation
 
+### Changed
+
+- a review by a fresh agent is something the user asks for, not a step a skill prescribes: `SKILL.md`, `references/review.md` and `references/description.md` say that a skill never tells the agent to re-check its work or to hand it to a reviewing agent, since the model verifies as it works and the line only costs tokens; `check-skill.sh` warns on such a line as `recheck-instruction`
+
 ### Fixed
 
 - `check-skill.sh` could reject a repository for a heading anchor that exists, or end a run without a word: the anchors were piped straight into `grep -q`, which stops reading at the match, and under `pipefail` the writer's SIGPIPE read as a failure. The anchors are read into a variable first, and the same shape is kept out of every new check

@@ -4,6 +4,7 @@ A skill is read by a model, so its defects are the defects a model does not noti
 
 ## Review by a fresh agent
 
+- **Only when the user asks.** A skill does not schedule a review: no `double-check your work` line, no mandatory hand-off to a reviewing agent. The model verifies as it works, a written instruction to check again costs tokens on every load and changes nothing, and a review by a second agent costs a whole second run. The user decides when that price is worth paying, and says so; the rules below apply to that review
 - **Never oneself.** The author re-reading finds what the author already believes
 - **Never a fork.** A fork inherits the author's context and with it every assumption the review is supposed to test; it agrees for the same reasons the author did. A fresh agent starts from the text alone
 - **The house rules go into the prompt.** A generic reviewer suggests the conventions it was trained on: third-person descriptions, a full stop on every bullet, a section per file. Given the repository's rules, it holds the text to those instead and lists the conflicts between its defaults and the rules as a separate list rather than as findings
