@@ -4,6 +4,6 @@
 # works: references/bump-cascade.md in https://github.com/rokokol/ci-skill
 vendor-sync.sh rokokol/ci-skill templates/vendor-sync.sh 641e5feccd4fd3328ff6da9fa0de8e304284dae8 65748845239e8495855de9e11fb36dd633c372c6
 check-pins.sh rokokol/ci-skill templates/check-pins.sh 65a870043a54563fe72302de56b9d06ce932adbd f44a172369006a0aae79f4a4f0f1d6e6afde2203
-check-sh.sh rokokol/bash-best-practices-skill check-sh.sh d398cb57365b1dc7288091b201d3e05d9396f57e ba39b645d91fc5c1da5a4230fc566df1e31f2125
+check-sh.sh rokokol/bash-best-practices-skill check-sh.sh 6a6e000c1cf73d3cc01620c075a75fef681fb32e dfcb3826642e10a91add2a34eba00b2825f5b76a
 .github/workflows/vendor-sync.yml rokokol/ci-skill templates/github/workflows/vendor-sync.yml f9c50a46092e4252f571e8e79b513418077e588f a5bde77f98d55a43b2c993f4c96a952e0b68010d manual
 .github/workflows/macos.yml rokokol/bash-best-practices-skill templates/github/workflows/macos.yml c21f3dce701edcfb8b61a814e8d2e5bb353c63d8 aa7a3b768209f56c3afa78a4fb9d0ed560d4c678 manual
