@@ -14,13 +14,17 @@
 #
 # Two tiers. An error is what stops a skill loading or leaves a reference unread, and it
 # is the first finding: exit 1, the message on stderr. A warning is a rule of the family
-# the skill breaks without breaking: `check-skill: warning: FILE:LINE: what` on stdout,
-# the exit code unchanged, and under GITHUB_ACTIONS a ::warning annotation as well. A
-# line that carries `check-skill: allow` — in an HTML comment, <!-- check-skill: allow -->
-# — is excused from every warning and from no error. --strict turns every warning into
-# a finding: the lines go to stderr too and the run exits 1 after the scan.
+# the skill breaks without breaking: `check-skill: warning: FILE:LINE: ID: what` on
+# stdout, the exit code unchanged, and under GITHUB_ACTIONS a ::warning annotation as
+# well. --strict turns every warning into a finding: the lines go to stderr too and the
+# run exits 1 after the scan.
 #
-# The warnings, by the id each line opens with:
+# A line that is right for a reason is excused in check-skill.allow beside SKILL.md, a
+# file no agent loads: one entry per line, `ID PATH [TEXT]`, excusing warnings of ID in
+# PATH, or only those on lines that contain TEXT when it is given; `#` opens a comment.
+# An entry that excuses nothing is itself the warning stale-allow, so the file stays true.
+#
+# The warnings, by the id each line carries:
 #   layout-section     a Layout heading in SKILL.md or a reference: readme content,
 #                      loaded on every request
 #   install-section    an Install, Installation, Setup or Checkout heading in SKILL.md
@@ -38,6 +42,7 @@
 #   trigger-duplicate  a trigger listed twice in the description
 #   readme-badge       the readme's badge row does not open with the Agent Skill badge
 #   harness-badge      the readme carries a harness badge, claiming a dependency
+#   stale-allow        an entry in check-skill.allow that excuses nothing
 #
 # Nothing here reaches the network. Needs bash 3.2 and POSIX tools only, so it runs on a
 # macOS runner unchanged. It has no repo-specific part: another repository takes it through
@@ -141,13 +146,11 @@ desc_chars=$(($(front_value description | LC_ALL=C tr -d '\200-\277' | wc -c) - 
 # ---- links, and what they reach --------------------------------------------------------
 
 # links_in DOC [numbered] -> one link target per line; code fences and spans are not links.
-# Numbered, each line is "LINE<TAB>target" and an excused line is skipped: the numbered
-# form serves the warnings, and a marker excuses no error
+# Numbered, each line is "LINE<TAB>target"
 links_in() {
   awk -v q="'" -v numbered="${2:-}" '
     /^[ \t]*(```|~~~)/ { fence = !fence; next }
     fence { next }
-    numbered && index($0, "check-skill: allow") { next }
     {
       line = $0
       gsub(/`[^`]*`/, "", line)
@@ -272,31 +275,74 @@ done
 # ---- the rules a skill can break without breaking ---------------------------------------
 # None of these stops a skill loading, so none is an error: a consumer's gate stays green
 # and the line is pointed at. Each is a heuristic over prose, and a line that is right for
-# a reason says so with the marker rather than by weakening the pattern.
+# a reason is excused in check-skill.allow rather than by weakening the pattern. The
+# excuses live in their own file because a marker on the line itself would be loaded by
+# the agent with the rest of the runtime, and would cost every request the tokens the
+# rule exists to save.
+
+allow_id=()
+allow_path=()
+allow_text=()
+allow_line=()
+allow_used=()
+if [[ -f check-skill.allow ]]; then
+  k=0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    k=$((k + 1))
+    case "$line" in '' | '#'*) continue ;; esac
+    read -r id path text <<<"$line"
+    [[ -n "$id" && -n "$path" ]] || fail "check-skill.allow:$k: expected ID PATH [TEXT], got: $line"
+    allow_id+=("$id")
+    allow_path+=("$path")
+    allow_text+=("$text")
+    allow_line+=("$k")
+    allow_used+=("")
+  done <check-skill.allow
+fi
+
+excused() { # excused FILE LINE ID -> 0 when an entry covers it, and that entry is marked used
+  local k text
+  for ((k = 0; k < ${#allow_id[@]}; k++)); do
+    [[ "${allow_id[$k]}" == "$3" && "${allow_path[$k]}" == "$1" ]] || continue
+    if [[ -n "${allow_text[$k]}" ]]; then
+      text=$(sed -n "${2}p" "$1")
+      [[ "$text" == *"${allow_text[$k]}"* ]] || continue
+    fi
+    allow_used[k]=1
+    return 0
+  done
+  return 1
+}
 
 nwarn=0
 # A warning is human text and still goes to stdout, not stderr: the gates that run this
 # script on a copy with a planted defect read the first stderr line as the reason the copy
 # failed, and a warning there would be taken for it. DEVIATIONS.md in
 # https://github.com/rokokol/skill-authoring-skill holds the reasoning
-warn() { # warn FILE LINE WHAT
+warn() { # warn FILE LINE ID WHAT
+  [[ "$3" == stale-allow ]] || ! excused "$1" "$2" "$3" || return 0
   nwarn=$((nwarn + 1))
-  printf 'check-skill: warning: %s:%s: %s\n' "$1" "$2" "$3"
-  [[ -z "${GITHUB_ACTIONS:-}" ]] || printf '::warning file=%s,line=%s::%s\n' "$1" "$2" "$3"
-  [[ -z "$strict" ]] || printf 'check-skill: %s:%s: %s\n' "$1" "$2" "$3" >&2
+  printf 'check-skill: warning: %s:%s: %s: %s\n' "$1" "$2" "$3" "$4"
+  [[ -z "${GITHUB_ACTIONS:-}" ]] || printf '::warning file=%s,line=%s::%s: %s\n' "$1" "$2" "$3" "$4"
+  [[ -z "$strict" ]] || printf 'check-skill: %s:%s: %s: %s\n' "$1" "$2" "$3" "$4" >&2
 }
 
 # lines_of FILE SPANS FENCES -> "LINE<TAB>text" for every line a warning may read: the
-# frontmatter and excused lines dropped, code spans stripped when SPANS is 1, fenced blocks
-# kept only when FENCES is 1. A phrase inside backticks is mentioned, not used
+# frontmatter dropped, code spans stripped when SPANS is 1 and links with them when it is
+# 2, fenced blocks kept only when FENCES is 1. A phrase inside backticks is mentioned, not
+# used, and a phrase inside a link is somebody else's title
 lines_of() {
   awk -v spans="$2" -v fences="$3" '
     NR == 1 && /^---$/ { front = 1; next }
     front { if (/^---$/) front = 0; next }
     /^[ \t]*(```|~~~)/ { fence = !fence; next }
     fence && !fences { next }
-    index($0, "check-skill: allow") { next }
-    { line = $0; if (spans) gsub(/`[^`]*`/, "", line); print NR "\t" line }
+    {
+      line = $0
+      if (spans) gsub(/`[^`]*`/, "", line)
+      if (spans == 2) gsub(/\[[^]]*\]\([^)]*\)/, "", line)
+      print NR "\t" line
+    }
   ' "$1"
 }
 
@@ -308,7 +354,7 @@ scan() {
   local id="$1" f="$2" n
   [[ -f "$f" ]] || return 0
   while IFS= read -r n; do
-    warn "$f" "$n" "$id: $8"
+    warn "$f" "$n" "$id" "$8"
   done < <(lines_of "$f" "$3" "$4" | awk -v lower="$5" -v re="$6" -v unless="$7" '
     {
       t = substr($0, index($0, "\t") + 1)
@@ -320,7 +366,9 @@ scan() {
 for doc in "${runtime[@]}"; do
   scan layout-section "$doc" 0 0 0 '^#+[ \t]+Layout[ \t]*$' '' \
     'a Layout section lists files a person navigates; it is readme content, loaded on every request'
-  scan history-wording "$doc" 1 0 1 '(^|[^a-z0-9])(used to|previously|formerly)([^a-z0-9]|$)' '' \
+  # "is used to mean" is a purpose, not a past: the auxiliary before it tells them apart
+  scan history-wording "$doc" 1 0 1 '(^|[^a-z0-9])(used to|previously|formerly)([^a-z0-9]|$)' \
+    '(^|[^a-z0-9])(is|are|was|were|be|been|being) used to([^a-z0-9]|$)' \
     'a rule is written as acting; what it replaced belongs to git and the changelog'
   scan pseudo-citation "$doc" 0 0 0 '[A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+[.](sh|md|yml|yaml|nix|py|ts|js|json|toml):[0-9]+' '' \
     'a path:line citation assumes a checkout the reader may not have and a line that drifts'
@@ -331,7 +379,7 @@ for doc in "${runtime[@]}"; do
     'one harness'"'"'s file named as the rule; name the class, the agent'"'"'s instructions (CLAUDE.md, AGENTS.md…)'
   scan prompt-idiom "$doc" 1 0 0 '(^|[^A-Za-z0-9])(CRITICAL|MUST)([^A-Za-z0-9]|$)|IMPORTANT:' '' \
     'an idiom of old prompts; emphasis is used once and carries its reason'
-  scan prompt-idiom "$doc" 1 0 1 'take a deep breath|red flags|comprehensive' '' \
+  scan prompt-idiom "$doc" 2 0 1 'take a deep breath|red flags|comprehensive' '' \
     'an idiom of old prompts; emphasis is used once and carries its reason'
   scan model-id "$doc" 0 1 0 'claude-[a-z]+-[0-9]|(opus|sonnet|haiku)-[0-9]|gpt-[0-9]|gemini-[0-9]' '' \
     'a concrete model id is copied verbatim; an example says <model>'
@@ -351,13 +399,13 @@ for doc in "${runtime[@]}"; do
       http://github.com/* | https://github.com/*)
         repo=$(printf '%s\n' "$target" | sed -E 's#^https?://github[.]com/[^/]+/([A-Za-z0-9_.-]+).*$#\1#')
         [[ "$repo" == *-skill && "$repo" != "$name-skill" && "$repo" != "$name" ]] || continue
-        warn "$doc" "$n" "cross-skill-link: links to $repo; runtime never routes to a sibling skill"
+        warn "$doc" "$n" cross-skill-link "links to $repo; runtime never routes to a sibling skill"
         ;;
       [a-z]*://* | mailto:* | //*) ;;
       *)
         path=$(resolve "$doc" "$target")
         [[ "$path" == /* ]] || continue
-        warn "$doc" "$n" "cross-skill-link: $target lies outside the repository, on this machine only"
+        warn "$doc" "$n" cross-skill-link "$target lies outside the repository, on this machine only"
         ;;
     esac
   done < <(links_in "$doc" numbered)
@@ -370,7 +418,7 @@ if [[ "$triggers" != "$desc" ]]; then
   dline=$(grep -n '^description:' SKILL.md | head -n 1 | cut -d: -f1)
   while IFS= read -r dup; do
     [[ -n "$dup" ]] || continue
-    warn SKILL.md "$dline" "trigger-duplicate: '$dup' is listed twice"
+    warn SKILL.md "$dline" trigger-duplicate "'$dup' is listed twice"
   done < <(printf '%s\n' "$triggers" | tr ',' '\n' | sed 's/^[ \t]*//; s/[ \t.]*$//' |
     LC_ALL=C tr '[:upper:]' '[:lower:]' | grep -v '^$' | sort | uniq -d)
 fi
@@ -385,22 +433,30 @@ if [[ -f README.md ]]; then
     { t = substr($0, index($0, "\t") + 1) }
     !found && t ~ /^[[]?![[]/ { print; found = 1 }')
   if [[ -n "$first" && "${first#*	}" != *img.shields.io/badge/Agent_Skill* ]]; then
-    warn README.md "${first%%	*}" 'readme-badge: the badge row does not open with the Agent Skill badge'
+    n="${first%%	*}"
+    warn README.md "$n" readme-badge 'the badge row does not open with the Agent Skill badge'
   fi
   scan harness-badge README.md 0 0 0 'badge/Claude_Code|badge/Claude%20Code|badge/Codex|badge/Gemini' '' \
     'a harness badge claims a dependency; a skill is a directory with a SKILL.md, read by any harness'
 fi
 
+# An excuse that excuses nothing is a rule silently switched off for a line that no longer
+# exists; the file is held to the warnings it actually prevents
+for ((k = 0; k < ${#allow_id[@]}; k++)); do
+  [[ -n "${allow_used[$k]}" ]] ||
+    warn check-skill.allow "${allow_line[$k]}" stale-allow "the entry for ${allow_id[$k]} in ${allow_path[$k]} excuses nothing"
+done
+
 if [[ -n "$strict" && "$nwarn" -gt 0 ]]; then
-  fail "$nwarn warning(s) under --strict — fix each line or end it with check-skill: allow"
+  fail "$nwarn warning(s) under --strict — fix each line or excuse it in check-skill.allow"
 fi
 
 # ---- every check above is able to fail ----------------------------------------------
 # On a copy of the repository with one defect planted, this same script must go red, and
 # for that defect's own reason: a gate whose findings all come from one over-broad branch
 # reads as thorough while testing one thing. A warning is proven the same way, by a plant
-# that must produce it and an excused copy of the plant that must not. A nested run skips
-# this section, so the copies are checked once each rather than recursively.
+# that must produce it and the same plant excused that must not. A nested run skips this
+# section, so the copies are checked once each rather than recursively.
 
 if [[ -n "${CHECK_SKILL_NESTED:-}" ]]; then
   exit 0
@@ -460,7 +516,7 @@ expect_quiet() { # expect_quiet COPY FRAGMENT WHAT — the plant's line is excus
   out=$(nested "$c" "${nargs[@]+"${nargs[@]}"}" 2>&1) ||
     fail "a copy with $what was rejected: $out"
   case "$out" in
-    *"warning: $want"*) fail "a copy with $what warned although the line is right: $out" ;;
+    *"warning: $want"*) fail "a copy with $what warned although the line is excused: $out" ;;
   esac
   planted=$((planted + 1))
 }
@@ -480,7 +536,12 @@ append() {
   wc -l <"$1/SKILL.md" | tr -d ' '
 }
 
-allow='<!-- check-skill: allow -->'
+# excuse COPY ENTRY... -> the copy's check-skill.allow holding exactly these entries
+excuse() {
+  local c="$1"
+  shift
+  printf '%s\n' "$@" >"$c/check-skill.allow"
+}
 
 c=$(copy clean)
 nested "$c" "${nargs[@]+"${nargs[@]}"}" >/dev/null 2>&1 ||
@@ -537,46 +598,57 @@ expect_warn "$c" "SKILL.md:$n: layout-section" "a Layout section"
 c=$(copy layout-strict)
 append "$c" '## Layout' >/dev/null
 expect_red "$c" "under --strict" "a warning under --strict" --strict "${nargs[@]+"${nargs[@]}"}"
-c=$(copy layout-allowed)
-n=$(append "$c" "## Layout $allow")
+c=$(copy layout-excused)
+n=$(append "$c" '## Layout')
+excuse "$c" 'layout-section SKILL.md'
 expect_quiet "$c" "SKILL.md:$n: layout-section" "an excused Layout section"
 
 c=$(copy install)
 n=$(append "$c" '## Install')
 expect_warn "$c" "SKILL.md:$n: install-section" "an Install section"
-c=$(copy install-allowed)
-n=$(append "$c" "## Install $allow")
+c=$(copy install-excused)
+n=$(append "$c" '## Install')
+excuse "$c" 'install-section SKILL.md'
 expect_quiet "$c" "SKILL.md:$n: install-section" "an excused Install section"
 
 c=$(copy history)
 p=$(plant "$c" 'This gate used to exit 1 here')
 expect_warn "$c" "$p:1: history-wording" "history wording"
-c=$(copy history-allowed)
-p=$(plant "$c" "This gate used to exit 1 here $allow")
-expect_quiet "$c" "$p:1: history-wording" "excused history wording"
+c=$(copy history-narrowed)
+p=$(plant "$c" 'This gate used to exit 1 here
+That one used to exit 2 there')
+excuse "$c" "history-wording $p exit 1"
+expect_quiet "$c" "$p:1: history-wording" "history wording excused by its text"
+expect_warn "$c" "$p:2: history-wording" "history wording the excuse's text does not reach"
 c=$(copy history-mentioned)
 p=$(plant "$c" "Never write \`used to\` in a rule")
 expect_quiet "$c" "$p:1: history-wording" "history wording mentioned in a code span"
+c=$(copy history-purpose)
+p=$(plant "$c" 'The term is used to mean any of the white-space bytes')
+expect_quiet "$c" "$p:1: history-wording" "a purpose that reads as a past"
 
 c=$(copy citation)
 p=$(plant "$c" 'Measured in other-repo/templates/check.sh:42, the loop exits early')
 expect_warn "$c" "$p:1: pseudo-citation" "a path:line citation"
-c=$(copy citation-allowed)
-p=$(plant "$c" "Measured in other-repo/templates/check.sh:42, the loop exits early $allow")
+c=$(copy citation-excused)
+p=$(plant "$c" 'Measured in other-repo/templates/check.sh:42, the loop exits early')
+excuse "$c" "pseudo-citation $p"
 expect_quiet "$c" "$p:1: pseudo-citation" "an excused path:line citation"
 
 c=$(copy date)
 p=$(plant "$c" 'The defect was found on 2026-09-01 in the weekly run')
 expect_warn "$c" "$p:1: discovery-date" "a discovery date"
-c=$(copy date-allowed)
-p=$(plant "$c" "The defect was found on 2026-09-01 in the weekly run $allow")
+c=$(copy date-excused)
+p=$(plant "$c" 'The defect was found on 2026-09-01 in the weekly run')
+excuse "$c" "discovery-date $p"
 expect_quiet "$c" "$p:1: discovery-date" "an excused discovery date"
 
 c=$(copy sibling-link)
 p=$(plant "$c" 'See the [other skill](https://github.com/example/other-skill) for the rest')
 expect_warn "$c" "$p:1: cross-skill-link" "a link to a sibling skill"
-c=$(copy sibling-link-allowed)
-p=$(plant "$c" "See the [other skill](https://github.com/example/other-skill) for the rest $allow")
+c=$(copy sibling-link-excused)
+p=$(plant "$c" 'See the [other skill](https://github.com/example/other-skill) for the rest')
+excuse "$c" "cross-skill-link $p other-skill"
 expect_quiet "$c" "$p:1: cross-skill-link" "an excused link to a sibling skill"
 c=$(copy own-link)
 p=$(plant "$c" "See [this repository](https://github.com/example/$name-skill) itself")
@@ -589,8 +661,9 @@ expect_warn "$c" "$p:1: cross-skill-link" "a link outside the repository"
 c=$(copy harness-file)
 p=$(plant "$c" 'Put the rule in CLAUDE.md')
 expect_warn "$c" "$p:1: harness-file" "one harness's file as the rule"
-c=$(copy harness-file-allowed)
-p=$(plant "$c" "Put the rule in CLAUDE.md $allow")
+c=$(copy harness-file-excused)
+p=$(plant "$c" 'Put the rule in CLAUDE.md')
+excuse "$c" "harness-file $p"
 expect_quiet "$c" "$p:1: harness-file" "an excused harness file"
 c=$(copy harness-class)
 p=$(plant "$c" 'Put the rule in the agent'"'"'s instructions (CLAUDE.md, AGENTS.md…)')
@@ -602,19 +675,24 @@ expect_warn "$c" "$p:1: prompt-idiom" "MUST in capitals"
 c=$(copy idiom-phrase)
 p=$(plant "$c" 'Take a deep breath and write a comprehensive plan')
 expect_warn "$c" "$p:1: prompt-idiom" "an old prompt's phrase"
-c=$(copy idiom-allowed)
-p=$(plant "$c" "You MUST always run the gate $allow")
+c=$(copy idiom-excused)
+p=$(plant "$c" 'You MUST always run the gate')
+excuse "$c" "prompt-idiom $p"
 expect_quiet "$c" "$p:1: prompt-idiom" "an excused idiom"
+c=$(copy idiom-title)
+p=$(plant "$c" 'See [A comprehensive study of pseudo-tested methods](https://example.org/paper)')
+expect_quiet "$c" "$p:1: prompt-idiom" "an idiom inside a linked title"
 
 c=$(copy model-id)
 p=$(plant "$c" '```
 Assisted-by: Claude Code:claude-opus-4-1
 ```')
 expect_warn "$c" "$p:2: model-id" "a concrete model id in a fence"
-c=$(copy model-id-allowed)
-p=$(plant "$c" "\`\`\`
-Assisted-by: Claude Code:claude-opus-4-1 $allow
-\`\`\`")
+c=$(copy model-id-excused)
+p=$(plant "$c" '```
+Assisted-by: Claude Code:claude-opus-4-1
+```')
+excuse "$c" "model-id $p"
 expect_quiet "$c" "$p:2: model-id" "an excused model id"
 c=$(copy model-placeholder)
 p=$(plant "$c" '```
@@ -625,14 +703,19 @@ expect_quiet "$c" "$p:2: model-id" "a <model> placeholder"
 c=$(copy unverified)
 p=$(plant "$c" 'The limit is 30 (fetch failed while writing this; the page is the canonical location)')
 expect_warn "$c" "$p:1: unverified-source" "a fetch-failure note"
-c=$(copy unverified-allowed)
-p=$(plant "$c" "The limit is 30 (fetch failed while writing this; the page is the canonical location) $allow")
+c=$(copy unverified-excused)
+p=$(plant "$c" 'The limit is 30 (fetch failed while writing this; the page is the canonical location)')
+excuse "$c" "unverified-source $p"
 expect_quiet "$c" "$p:1: unverified-source" "an excused fetch-failure note"
 
 c=$(copy trigger-twice)
 sed 's/^description:.*/description: "What it is. Use when needed. Triggers: alpha, beta, Alpha."/' SKILL.md >"$c/SKILL.md"
 n=$(grep -n '^description:' "$c/SKILL.md" | head -n 1 | cut -d: -f1)
 expect_warn "$c" "SKILL.md:$n: trigger-duplicate: 'alpha'" "a trigger listed twice"
+c=$(copy trigger-twice-excused)
+sed 's/^description:.*/description: "What it is. Use when needed. Triggers: alpha, beta, Alpha."/' SKILL.md >"$c/SKILL.md"
+excuse "$c" 'trigger-duplicate SKILL.md'
+expect_quiet "$c" "SKILL.md:$n: trigger-duplicate" "an excused duplicate trigger"
 
 c=$(copy badge-order)
 printf '# a skill\n\n![Bash](https://img.shields.io/badge/Bash-4EAA25?style=flat)\n[![Agent Skill](https://img.shields.io/badge/Agent_Skill-6E56CF?style=flat)](https://agentskills.io)\n' >"$c/README.md"
@@ -643,8 +726,18 @@ expect_quiet "$c" "README.md:3: readme-badge" "a badge row opening with Agent Sk
 c=$(copy harness-badge)
 printf '# a skill\n\n[![Agent Skill](https://img.shields.io/badge/Agent_Skill-6E56CF?style=flat)](https://agentskills.io)\n![Claude Code](https://img.shields.io/badge/Claude_Code-D97757?style=flat)\n' >"$c/README.md"
 expect_warn "$c" "README.md:4: harness-badge" "a harness badge"
-c=$(copy harness-badge-allowed)
-printf '# a skill\n\n[![Agent Skill](https://img.shields.io/badge/Agent_Skill-6E56CF?style=flat)](https://agentskills.io)\n![Claude Code](https://img.shields.io/badge/Claude_Code-D97757?style=flat) %s\n' "$allow" >"$c/README.md"
+c=$(copy harness-badge-excused)
+printf '# a skill\n\n[![Agent Skill](https://img.shields.io/badge/Agent_Skill-6E56CF?style=flat)](https://agentskills.io)\n![Claude Code](https://img.shields.io/badge/Claude_Code-D97757?style=flat)\n' >"$c/README.md"
+excuse "$c" 'harness-badge README.md'
 expect_quiet "$c" "README.md:4: harness-badge" "an excused harness badge"
+
+# The allow file is held to what it prevents: an entry nothing uses is a warning, and a
+# line that is not an entry is a usage error of the file
+c=$(copy stale-excuse)
+excuse "$c" '# a comment and a blank line are not entries' '' 'layout-section SKILL.md'
+expect_warn "$c" "check-skill.allow:3: stale-allow" "an excuse that excuses nothing"
+c=$(copy broken-excuse)
+excuse "$c" 'layout-section'
+expect_red "$c" "expected ID PATH" "an allow entry with no path" "${nargs[@]+"${nargs[@]}"}"
 
 echo "check-skill: SKILL.md loads as '$name', $nrefs references reachable, $nlinks links resolve, $nwarn warnings, $planted planted defects caught"

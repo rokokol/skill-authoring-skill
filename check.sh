@@ -165,15 +165,15 @@ check_behaviour() {
   local help
   help=$(skill --help)
   grep -q '^Exit 1 with' <<<"$help" || fail "--help stops before the exit codes"
-  # An id is the first word of a scan call, or the quoted token a direct warn call opens
-  # its message with; the count guards the extraction, since a grep that matches nothing
-  # would hold the help to nothing
+  # An id is the first word of a scan call, or the third word of a direct warn call; the
+  # count guards the extraction, since a grep that matches nothing would hold the help to
+  # nothing
   local ids
   ids=$({
     grep -E '^ *scan [a-z-]+' check-skill.sh | awk '{ print $2 }'
-    grep -E '^ *warn ' check-skill.sh | grep -oE "[\"'][a-z-]+: " | tr -d "\"'" | sed 's/: $//'
+    grep -E '^ *warn ' check-skill.sh | awk '{ print $4 }' | grep -E '^[a-z-]+$'
   } | sort -u)
-  [[ "$(wc -l <<<"$ids" | tr -d ' ')" -ge 13 ]] || fail "only these warning ids were found in check-skill.sh, so the extraction is broken: $ids"
+  [[ "$(wc -l <<<"$ids" | tr -d ' ')" -ge 14 ]] || fail "only these warning ids were found in check-skill.sh, so the extraction is broken: $ids"
   for id in $ids; do
     grep -qE "^  $id " <<<"$help" || fail "the warning id '$id' is printed by check-skill.sh but not named in its help"
   done
