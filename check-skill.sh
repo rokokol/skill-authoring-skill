@@ -416,11 +416,11 @@ desc=$(front_value description)
 triggers="${desc##*Triggers:}"
 if [[ "$triggers" != "$desc" ]]; then
   dline=$(grep -n '^description:' SKILL.md | head -n 1 | cut -d: -f1)
+  # Bytes, not the locale's collation: macOS's uniq compares in it, and there every
+  # Cyrillic trigger collates equal to every other of the same word count — PITFALLS.md
   while IFS= read -r dup; do
     [[ -n "$dup" ]] || continue
     warn SKILL.md "$dline" trigger-duplicate "'$dup' is listed twice"
-  # Bytes, not the locale's collation: macOS's uniq compares in it, and there every
-  # Cyrillic trigger collates equal to every other of the same word count — PITFALLS.md
   done < <(printf '%s\n' "$triggers" | tr ',' '\n' | sed 's/^[ \t]*//; s/[ \t.]*$//' |
     LC_ALL=C tr '[:upper:]' '[:lower:]' | grep -v '^$' | LC_ALL=C sort | LC_ALL=C uniq -d)
 fi
