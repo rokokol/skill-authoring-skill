@@ -16,6 +16,7 @@ Kept in the shape of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), d
 
 - `check-skill.sh` prints its help from a heredoc instead of reading its own header back, which under `bash <(…)` is the pipe bash reads the script from and printed nothing; the network and bash 3.2 claims stay in the header comment and are no longer part of `--help`
 - a review by a fresh agent is something the user asks for, not a step a skill prescribes: `SKILL.md`, `references/review.md` and `references/description.md` say that a skill never tells the agent to re-check its work or to hand it to a reviewing agent, since the model verifies as it works and the line only costs tokens; `check-skill.sh` warns on such a line as `recheck-instruction`
+- `check-skill.sh`'s header now keeps only what an editor needs — where the file comes from, the bash 3.2 floor, why nesting skips the self-falsification — and its `--help` carries everything a caller acts on, the network line included, which an entry earlier today left in the header; `check.sh`, the gate, answers `--help` too, with its two modes, what each needs and its exit codes
 
 ### Fixed
 
