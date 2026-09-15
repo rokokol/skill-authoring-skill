@@ -22,7 +22,8 @@
 # A line that is right for a reason is excused in check-skill.allow beside SKILL.md, a
 # file no agent loads: one entry per line, `ID PATH [TEXT]`, excusing warnings of ID in
 # PATH, or only those on lines that contain TEXT when it is given; `#` opens a comment.
-# An entry that excuses nothing is itself the warning stale-allow, so the file stays true.
+# An entry that excuses nothing is an error, like a malformed one: left in place, it
+# would silently excuse the next real violation that lands on that path.
 #
 # The warnings, by the id each line carries:
 #   layout-section     a Layout heading in SKILL.md or a reference: readme content,
@@ -44,7 +45,6 @@
 #   trigger-duplicate  a trigger listed twice in the description
 #   readme-badge       the readme's badge row does not open with the Agent Skill badge
 #   harness-badge      the readme carries a harness badge, claiming a dependency
-#   stale-allow        an entry in check-skill.allow that excuses nothing
 #
 # Nothing here reaches the network. Needs bash 3.2 and POSIX tools only, so it runs on a
 # macOS runner unchanged. It has no repo-specific part: another repository takes it through
@@ -322,7 +322,7 @@ nwarn=0
 # failed, and a warning there would be taken for it. DEVIATIONS.md in
 # https://github.com/rokokol/skill-authoring-skill holds the reasoning
 warn() { # warn FILE LINE ID WHAT
-  [[ "$3" == stale-allow ]] || ! excused "$1" "$2" "$3" || return 0
+  ! excused "$1" "$2" "$3" || return 0
   nwarn=$((nwarn + 1))
   printf 'check-skill: warning: %s:%s: %s: %s\n' "$1" "$2" "$3" "$4"
   [[ -z "${GITHUB_ACTIONS:-}" ]] || printf '::warning file=%s,line=%s::%s: %s\n' "$1" "$2" "$3" "$4"
@@ -447,11 +447,12 @@ if [[ -f README.md ]]; then
     'a harness badge claims a dependency; a skill is a directory with a SKILL.md, read by any harness'
 fi
 
-# An excuse that excuses nothing is a rule silently switched off for a line that no longer
-# exists; the file is held to the warnings it actually prevents
+# An excuse that excuses nothing is a rule switched off in advance: the next real violation
+# of that id on that path would be swallowed without a word. So it is an error, not one
+# more warning, and the file is held to the warnings it actually prevents
 for ((k = 0; k < ${#allow_id[@]}; k++)); do
   [[ -n "${allow_used[$k]}" ]] ||
-    warn check-skill.allow "${allow_line[$k]}" stale-allow "the entry for ${allow_id[$k]} in ${allow_path[$k]} excuses nothing"
+    fail "check-skill.allow:${allow_line[$k]}: the entry for ${allow_id[$k]} in ${allow_path[$k]} excuses nothing — remove it"
 done
 
 if [[ -n "$strict" && "$nwarn" -gt 0 ]]; then
@@ -748,11 +749,12 @@ printf '# a skill\n\n[![Agent Skill](https://img.shields.io/badge/Agent_Skill-6E
 excuse "$c" 'harness-badge README.md'
 expect_quiet "$c" "README.md:4: harness-badge" "an excused harness badge"
 
-# The allow file is held to what it prevents: an entry nothing uses is a warning, and a
-# line that is not an entry is a usage error of the file
+# The allow file is held to what it prevents: an entry nothing uses is an error, and so is
+# a line that is not an entry
 c=$(copy stale-excuse)
 excuse "$c" '# a comment and a blank line are not entries' '' 'layout-section SKILL.md'
-expect_warn "$c" "check-skill.allow:3: stale-allow" "an excuse that excuses nothing"
+expect_red "$c" "check-skill.allow:3: the entry for layout-section in SKILL.md excuses nothing" \
+  "an excuse that excuses nothing" "${nargs[@]+"${nargs[@]}"}"
 c=$(copy broken-excuse)
 excuse "$c" 'layout-section'
 expect_red "$c" "expected ID PATH" "an allow entry with no path" "${nargs[@]+"${nargs[@]}"}"
