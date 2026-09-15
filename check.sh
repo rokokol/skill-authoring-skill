@@ -165,13 +165,20 @@ check_behaviour() {
   local help
   help=$(skill --help)
   grep -q '^Exit 1 with' <<<"$help" || fail "--help stops before the exit codes"
-  # An id is the first word of a scan call, or the third word of a direct warn call; the
-  # count guards the extraction, since a grep that matches nothing would hold the help to
-  # nothing
-  local ids
+  # An id is the first word of a scan call, the third word of a direct warn call, or the
+  # first argument of a prose rule r("ID", …); the count guards the extraction, since a
+  # grep that matches nothing would hold the help to nothing. A prose rule's message comes
+  # from why(), so every such id also needs its arm there, or it warns with no reason
+  local ids rule_ids
+  rule_ids=$(grep -oE '^ *r\("[a-z-]+"' check-skill.sh | sed 's/.*"\([a-z-]*\)"$/\1/' | sort -u)
+  [[ -n "$rule_ids" ]] || fail "no prose rule r(\"ID\", …) was found in check-skill.sh, so the extraction is broken"
+  for id in $rule_ids; do
+    grep -qE "^ +$id\) echo " check-skill.sh || fail "the prose rule '$id' has no message in why()"
+  done
   ids=$({
     grep -E '^ *scan [a-z-]+' check-skill.sh | awk '{ print $2 }'
     grep -E '^ *warn ' check-skill.sh | awk '{ print $4 }' | grep -E '^[a-z-]+$'
+    printf '%s\n' "$rule_ids"
   } | sort -u)
   [[ "$(wc -l <<<"$ids" | tr -d ' ')" -ge 14 ]] || fail "only these warning ids were found in check-skill.sh, so the extraction is broken: $ids"
   for id in $ids; do

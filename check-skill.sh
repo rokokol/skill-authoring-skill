@@ -34,6 +34,10 @@ PATH, or only those on lines that contain TEXT when it is given; `#` opens a com
 An entry that excuses nothing is an error, like a malformed one: left in place, it
 would silently excuse the next real violation that lands on that path.
 
+CHECK_SKILL_NESTED=1 skips the self-falsification and runs only the checks. The planted
+copies are run that way, and so should a gate that runs this script inside copies of its
+own repository: there the falsification proves nothing new and repeats in every copy.
+
 The warnings, by the id each line carries:
   layout-section     a Layout heading in SKILL.md or a reference: readme content,
                      loaded on every request
@@ -366,31 +370,62 @@ scan() {
     }')
 }
 
+why() { # why ID -> what the warning of that id tells the reader
+  case "$1" in
+    layout-section) echo 'a Layout section lists files a person navigates; it is readme content, loaded on every request' ;;
+    history-wording) echo 'a rule is written as acting; what it replaced belongs to git and the changelog' ;;
+    pseudo-citation) echo 'a path:line citation assumes a checkout the reader may not have and a line that drifts' ;;
+    discovery-date) echo 'a date that says when a defect was found bounds nothing; keep only a date that bounds a measurement' ;;
+    harness-file) echo "one harness's file named as the rule; name the class, the agent's instructions (CLAUDE.md, AGENTS.md…)" ;;
+    prompt-idiom) echo 'an idiom of old prompts; emphasis is used once and carries its reason' ;;
+    model-id) echo 'a concrete model id is copied verbatim; an example says <model>' ;;
+    unverified-source) echo 'a fetch-failure note beside a claim says the claim was not checked; verify it or remove it' ;;
+    recheck-instruction) echo 'the model verifies as it works; a review by another agent happens when the user asks for one' ;;
+  esac
+}
+
+# The rules over prose, all of them in one awk pass per document: a process per rule and
+# document multiplied by every planted copy was most of what a run cost. Each rule reads
+# the raw line, the line without code spans (1), or without spans and links (2); fenced
+# lines only when it says so; lowercased when it says so; and matches RE but not UNLESS.
+# The regexes are awk string literals, so a literal dot is [.] rather than an escape
+# shellcheck disable=SC2016 # the backticks are markdown code spans inside an awk program
+prose_rules='
+  function r(i, s, f, l, e, u) { n++; id[n] = i; sp[n] = s; fe[n] = f; lo[n] = l; re[n] = e; un[n] = u }
+  BEGIN {
+    r("layout-section", 0, 0, 0, "^#+[ \t]+Layout[ \t]*$", "")
+    # "is used to mean" is a purpose, not a past: the auxiliary before it tells them apart
+    r("history-wording", 1, 0, 1, "(^|[^a-z0-9])(used to|previously|formerly)([^a-z0-9]|$)", "(^|[^a-z0-9])(is|are|was|were|be|been|being) used to([^a-z0-9]|$)")
+    r("pseudo-citation", 0, 0, 0, "[A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+[.](sh|md|yml|yaml|nix|py|ts|js|json|toml):[0-9]+", "")
+    r("discovery-date", 1, 0, 1, "(found|discovered|noticed|caught|fixed|broke|decided|introduced|audited|reviewed)( on| in| at)? 20[0-9][0-9]-[01][0-9]-[0-3][0-9]", "")
+    r("harness-file", 0, 0, 0, "CLAUDE[.]md|GEMINI[.]md|[.]cursorrules", "AGENTS[.]md")
+    r("prompt-idiom", 1, 0, 0, "(^|[^A-Za-z0-9])(CRITICAL|MUST)([^A-Za-z0-9]|$)|IMPORTANT:", "")
+    r("prompt-idiom", 2, 0, 1, "take a deep breath|red flags|comprehensive", "")
+    r("model-id", 0, 1, 0, "claude-[a-z]+-[0-9]|(opus|sonnet|haiku)-[0-9]|gpt-[0-9]|gemini-[0-9]", "")
+    r("unverified-source", 1, 0, 1, "fetch failed|could not (be )?fetch|canonical location", "")
+    r("recheck-instruction", 1, 0, 1, "double-check|re-check|recheck|check your (own )?work|verify your (own )?(work|answer|result)|(review|check)( it| the result| the diff)? (by|with) (a |an |another )?(sub)?agent", "")
+  }
+  NR == 1 && /^---$/ { front = 1; next }
+  front { if (/^---$/) front = 0; next }
+  /^[ \t]*(```|~~~)/ { fence = !fence; next }
+  {
+    s0 = $0
+    s1 = s0; gsub(/`[^`]*`/, "", s1)
+    s2 = s1; gsub(/\[[^]]*\]\([^)]*\)/, "", s2)
+    for (k = 1; k <= n; k++) {
+      if (fence && !fe[k]) continue
+      t = sp[k] == 2 ? s2 : (sp[k] == 1 ? s1 : s0)
+      if (lo[k]) t = tolower(t)
+      # one warning per id and line, where two rules share an id
+      if (t ~ re[k] && (un[k] == "" || t !~ un[k]) && !(id[k] in seen)) { print NR "\t" id[k]; seen[id[k]] = 1 }
+    }
+    split("", seen)
+  }'
+
 for doc in "${runtime[@]}"; do
-  scan layout-section "$doc" 0 0 0 '^#+[ \t]+Layout[ \t]*$' '' \
-    'a Layout section lists files a person navigates; it is readme content, loaded on every request'
-  # "is used to mean" is a purpose, not a past: the auxiliary before it tells them apart
-  scan history-wording "$doc" 1 0 1 '(^|[^a-z0-9])(used to|previously|formerly)([^a-z0-9]|$)' \
-    '(^|[^a-z0-9])(is|are|was|were|be|been|being) used to([^a-z0-9]|$)' \
-    'a rule is written as acting; what it replaced belongs to git and the changelog'
-  scan pseudo-citation "$doc" 0 0 0 '[A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+[.](sh|md|yml|yaml|nix|py|ts|js|json|toml):[0-9]+' '' \
-    'a path:line citation assumes a checkout the reader may not have and a line that drifts'
-  scan discovery-date "$doc" 1 0 1 \
-    '(found|discovered|noticed|caught|fixed|broke|decided|introduced|audited|reviewed)( on| in| at)? 20[0-9][0-9]-[01][0-9]-[0-3][0-9]' '' \
-    'a date that says when a defect was found bounds nothing; keep only a date that bounds a measurement'
-  scan harness-file "$doc" 0 0 0 'CLAUDE[.]md|GEMINI[.]md|[.]cursorrules' 'AGENTS[.]md' \
-    'one harness'"'"'s file named as the rule; name the class, the agent'"'"'s instructions (CLAUDE.md, AGENTS.md…)'
-  scan prompt-idiom "$doc" 1 0 0 '(^|[^A-Za-z0-9])(CRITICAL|MUST)([^A-Za-z0-9]|$)|IMPORTANT:' '' \
-    'an idiom of old prompts; emphasis is used once and carries its reason'
-  scan prompt-idiom "$doc" 2 0 1 'take a deep breath|red flags|comprehensive' '' \
-    'an idiom of old prompts; emphasis is used once and carries its reason'
-  scan model-id "$doc" 0 1 0 'claude-[a-z]+-[0-9]|(opus|sonnet|haiku)-[0-9]|gpt-[0-9]|gemini-[0-9]' '' \
-    'a concrete model id is copied verbatim; an example says <model>'
-  scan unverified-source "$doc" 1 0 1 'fetch failed|could not (be )?fetch|canonical location' '' \
-    'a fetch-failure note beside a claim says the claim was not checked; verify it or remove it'
-  scan recheck-instruction "$doc" 1 0 1 \
-    'double-check|re-check|recheck|check your (own )?work|verify your (own )?(work|answer|result)|(review|check)( it| the result| the diff)? (by|with) (a |an |another )?(sub)?agent' '' \
-    'the model verifies as it works; a review by another agent happens when the user asks for one'
+  while IFS=$'\t' read -r n id; do
+    warn "$doc" "$n" "$id" "$(why "$id")"
+  done < <(awk "$prose_rules" "$doc")
 done
 scan install-section SKILL.md 0 0 0 '^#+[ \t]+(Install|Installation|Setup|Checkout)[ \t]*$' '' \
   'install and setup are the readme'"'"'s; an agent that loaded the skill is past them'
@@ -403,12 +438,17 @@ for doc in "${runtime[@]}"; do
     [[ -n "$target" ]] || continue
     case "$target" in
       http://github.com/* | https://github.com/*)
-        repo=$(printf '%s\n' "$target" | sed -E 's#^https?://github[.]com/[^/]+/([A-Za-z0-9_.-]+).*$#\1#')
+        repo="${target#*://github.com/}"
+        repo="${repo#*/}"
+        repo="${repo%%[/?#]*}"
         [[ "$repo" == *-skill && "$repo" != "$name-skill" && "$repo" != "$name" ]] || continue
         warn "$doc" "$n" cross-skill-link "links to $repo; runtime never routes to a sibling skill"
         ;;
       [a-z]*://* | mailto:* | //*) ;;
       *)
+        # Only a climb can leave the repository, and resolving costs a subshell per link, so
+        # a target with no .. in it is taken as inside without asking
+        [[ "$target" == *..* ]] || continue
         path=$(resolve "$doc" "$target")
         [[ "$path" == /* ]] || continue
         warn "$doc" "$n" cross-skill-link "$target lies outside the repository, on this machine only"
