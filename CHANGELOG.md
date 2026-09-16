@@ -2,6 +2,12 @@
 
 Kept in the shape of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), dated rather than numbered, and with no `Unreleased` section: this repository is read at whatever revision you have checked out, so whatever is on the default branch is what every reader already has
 
+## 2026-09-16
+
+### Fixed
+
+- `check-skill.sh` matched SKILL.md's frontmatter through `printf … | grep -q` and took the description's line number through `| head -n 1`: a reader that stops early closes the pipe, whatever feeds it dies of SIGPIPE, and `pipefail` makes that death the status, so the checker could fail on a frontmatter that carries every key it asks for. The text reaches `grep` through `<<<` now, and the line number through a `sed` that reads to the end — the mechanism is measured in the [bash-best-practices](https://github.com/rokokol/bash-best-practices-skill) skill's `references/pitfalls.md`
+
 ## 2026-09-15
 
 ### Added
