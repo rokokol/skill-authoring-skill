@@ -4,6 +4,10 @@ Kept in the shape of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), d
 
 ## 2026-09-16
 
+### Changed
+
+- `check.sh` no longer parses every script with its own `bash -n` loop: `check-sh.sh` reports a script it cannot parse, and the gate hands it this repository's own scripts, itself included. The vendored copies are byte-equal to sources that parse them there, which `vendor-sync.sh` and the lock guarantee
+
 ### Fixed
 
 - `check-skill.sh` matched SKILL.md's frontmatter through `printf … | grep -q` and took the description's line number through `| head -n 1`: a reader that stops early closes the pipe, whatever feeds it dies of SIGPIPE, and `pipefail` makes that death the status, so the checker could fail on a frontmatter that carries every key it asks for. The text reaches `grep` through `<<<` now, and the line number through a `sed` that reads to the end — the mechanism is measured in the [bash-best-practices](https://github.com/rokokol/bash-best-practices-skill) skill's `references/pitfalls.md`. The frontmatter's opening `---` is read the same way, where `head` writes its one line and leaves nothing to kill: the rule holds for every reader that stops early, and `check-sh.sh` now reports the shape, so a checker spelling its own exception would be one nobody can hold to it

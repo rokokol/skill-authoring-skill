@@ -79,7 +79,10 @@ done
 
 check_lint() {
   echo "== the scripts parse and lint"
-  for s in "${scripts[@]}"; do bash -n "$s"; done
+  # No `bash -n` loop: check-sh.sh parses every script it is handed, and it is handed this
+  # repository's own ones below. The vendored copies are byte-equal to sources that parse
+  # them there, which vendor-sync.sh and the lock guarantee, so parsing them again here
+  # would prove nothing about the same bytes
   shellcheck "${scripts[@]}"
   shfmt -d -i 2 -ci "${scripts[@]}"
 
@@ -161,6 +164,9 @@ check_behaviour() {
   # this half under 3.2. It plants its own defects on every run, so nothing here has to
   # prove it can fail
   checker check-skill.sh
+  # The gate itself, for its parse and its bash 3.2 claim: it has no dispatcher and no
+  # flags, so the checker reads it by the proxy alone
+  checker check.sh
 
   echo "== this repository is the first skill the checker has to be right about"
   # SKILL.md loads, every reference is reached, every link and anchor resolves, and each
