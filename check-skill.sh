@@ -115,7 +115,10 @@ fail() {
 # and nothing says so: the agent just never reaches for it.
 
 [[ -f SKILL.md ]] || fail "no SKILL.md in $root — there is nothing for an agent to load"
-head -n 1 SKILL.md | grep -qx -- '---' || fail "SKILL.md does not open with a frontmatter block"
+# <<< rather than a pipe even here, where `head` writes its line and leaves nothing to
+# kill: the rule holds for every reader that stops early, and a checker that spells its
+# own exception is a checker nobody can hold to it
+grep -qx -- '---' <<<"$(head -n 1 SKILL.md)" || fail "SKILL.md does not open with a frontmatter block"
 front=$(sed -n '2,/^---$/p' SKILL.md)
 [[ "$(printf '%s\n' "$front" | tail -n 1)" == "---" ]] ||
   fail "SKILL.md's frontmatter is never closed by a second ---"
