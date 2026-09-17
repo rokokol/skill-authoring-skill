@@ -2,6 +2,12 @@
 
 Kept in the shape of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), dated rather than numbered, and with no `Unreleased` section: this repository is read at whatever revision you have checked out, so whatever is on the default branch is what every reader already has
 
+## 2026-09-17
+
+### Changed
+
+- The description is cut to what the skill is, the actions that load it and the phrases users type for them: any change to a skill — creating one, editing its `SKILL.md`, a reference or its description, reviewing or installing one — now loads it, and the table of contents of the rules is gone from the description
+
 ## 2026-09-16
 
 ### Changed

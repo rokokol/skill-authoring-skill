@@ -1,6 +1,6 @@
 ---
 name: skill-authoring
-description: "What it is — how a skill of this family is written: what SKILL.md and references/ may hold and what goes to the README, evidence instead of provenance, triggers from real speech, no harness lock-in, and a review only when asked and never one's own; plus check-skill.sh, the gate every skill repository runs, with a linter tier that warns on the rest. Use when writing a new skill, editing or auditing an existing one, writing or tuning a description and its triggers, deciding whether a line belongs in runtime or the README, reviewing or installing someone else's skill, or when a skill does not load. Triggers: skill, SKILL.md, references, description, triggers, write a skill, new skill, fix the skill, review this skill, skill audit, the skill does not load, install a skill, someone else's skill, скилл, напиши скилл, новый скилл, поправь скилл, проверь скилл, ревью скилла, аудит скиллов, триггеры, description скилла, скилл не подгружается, чужой скилл, установить скилл."
+description: "What it is — the house rules for writing a skill, and check-skill.sh, the gate that checks one. Use before any change to a skill: creating one, editing its SKILL.md, a reference or its description, reviewing or installing one. Triggers: skill, SKILL.md, new skill, fix the skill, review this skill, the skill does not load, скилл, напиши скилл, поправь скилл, отредактируй скилл, проверь скилл, скилл не подгружается."
 license: MIT
 ---
 
