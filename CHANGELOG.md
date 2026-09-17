@@ -7,6 +7,7 @@ Kept in the shape of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), d
 ### Changed
 
 - The description is cut to what the skill is, the actions that load it and the phrases users type for them: any change to a skill — creating one, editing its `SKILL.md`, a reference or its description, reviewing or installing one — now loads it, and the table of contents of the rules is gone from the description
+- `check-skill.sh --help` says when a gate may set `CHECK_SKILL_NESTED=1`: inside copies of its own repository and on every call after the first in one run, never on the first, because the defects are planted into a copy of the repository being checked and what the self-test proves changes with it
 
 ## 2026-09-16
 
