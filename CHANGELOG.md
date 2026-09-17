@@ -4,6 +4,12 @@ Kept in the shape of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), d
 
 ## 2026-09-17
 
+### Fixed
+
+- `check-skill.sh`'s header said where the file comes from in a sentence with no subject — `From <url>, never edits its copy in place` — and pointed at an antecedent that had moved into the help, `There the falsification proves nothing new`. It now names the cascade whole, and the sentence about a copy's falsification is gone from the header, which the help already carries under `CHECK_SKILL_NESTED`
+- `check-skill.sh`'s help no longer repeats where the file comes from: that fact belongs to the header alone, and the help keeps only what a caller acts on, that the script has no repo-specific part and belongs in a repository's own gate
+- two paragraphs of `check-skill.sh --help` ended with a full stop, the `-n NAME` sentence and the network line, where the house rule leaves the last line of a paragraph bare
+
 ### Changed
 
 - The description is cut to what the skill is, the actions that load it and the phrases users type for them: any change to a skill — creating one, editing its `SKILL.md`, a reference or its description, reviewing or installing one — now loads it, and the table of contents of the rules is gone from the description
