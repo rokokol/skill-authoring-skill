@@ -19,6 +19,8 @@ A skill is loaded whole into every conversation that reaches for it. Each line e
 
 This skill is the set of rules that keep a skill worth loading, gathered from an audit of every skill in this family, plus a checker that decides the half a script can decide. The rules are in [SKILL.md](SKILL.md), one line each with a link to the reference that argues it, kept where the agent reads them rather than as a second copy here
 
+The same rules govern the agent's own instructions — `CLAUDE.md`, `AGENTS.md`, whatever the harness reads as memory — because that file is the same kind of text under a harsher rule: loaded into every conversation rather than the ones that reach for the topic, and with no description or trigger to earn its way in. The checker still takes a skill repository, so that half is read and not run
+
 ## Contents
 
 - [Install](#install)

@@ -1,12 +1,14 @@
 ---
 name: skill-authoring
-description: "What it is — the house rules for writing a skill, and check-skill.sh, the gate that checks one. Use before any change to a skill: creating one, editing its SKILL.md, a reference or its description, reviewing or installing one. Triggers: skill, SKILL.md, new skill, fix the skill, review this skill, the skill does not load, скилл, напиши скилл, поправь скилл, отредактируй скилл, проверь скилл, скилл не подгружается."
+description: "What it is — the house rules for text an agent loads whole into a conversation, a skill or its own instruction file, and check-skill.sh, the gate that checks a skill. Use before any change to a skill — creating one, editing its SKILL.md, a reference or its description, reviewing or installing one — and before changing the agent's instructions. Triggers: skill, SKILL.md, new skill, fix the skill, review this skill, the skill does not load, CLAUDE.md, AGENTS.md, agent instructions, add a rule, скилл, напиши скилл, поправь скилл, отредактируй скилл, проверь скилл, скилл не подгружается, добавь правило, поправь CLAUDE.md"
 license: MIT
 ---
 
 # skill-authoring
 
 A skill is loaded whole into every conversation that reaches for it, so each line either helps the agent act now or costs every future request. Two kinds of text live in a skill's repository. **Runtime** is `SKILL.md` and everything under `references/`: the only files an agent loads. **Development** is the README, the changelog, maintainer documents, script and workflow comments, vendor locks and tests: what a person reads while working on the repository. Every rule below says which side a line belongs to
+
+The agent's own instructions — `CLAUDE.md`, `AGENTS.md`, the harness's memory — are runtime under a harsher rule: loaded into every conversation rather than into the ones that reach for the topic, and with no description or trigger to earn their way in. So every rule below about runtime holds there, and the cost question is asked of each line against every request rather than every invocation
 
 [`check-skill.sh`](check-skill.sh) beside this file decides the machine-checkable half, on any skill repository: what stops a skill loading is an error, and the rest of the rules are warnings that draw attention without turning a gate red. `check-skill.sh --help` is the reference for what it checks, how a line is excused and how warnings become errors
 
@@ -15,6 +17,7 @@ A skill is loaded whole into every conversation that reaches for it, so each lin
 - **Runtime holds what an ordinary invocation needs.** Install, repository development, self-tests and checkout layout belong to the README or a maintainer document; a `Layout` section in runtime is README content billed on every load. See [references/boundary.md](references/boundary.md)
 - **A tool is not restated; it is pointed at.** Runtime sends the agent to the tool's own help and mentions only the calls the task needs, each of which must exist there. Two accounts of one interface disagree within a month
 - **Principle and mandatory action in `SKILL.md`, the mechanism in one reference.** Every file under `references/` is reachable by a chain of links from `SKILL.md`; a reference nothing links to is never read and rots while looking maintained. When a link goes, either another route remains or the file goes with it
+- **A rule the harness contradicts names what the harness's line covers.** The harness's own instructions arrive later in the context and can claim to replace earlier guidance, so a rule that only states itself is dropped; it holds when it says which lines the harness's instruction actually reaches. That naming is the whole of the fix — stating it at greater length does not hold it better
 - **Runtime never says which sibling skill owns another topic.** Routing is the agent's instructions' job, and a link to a neighbour makes the skill depend on a checkout that may not exist. The one candidate exception is a skill that itself defines a composite standard and imports another standard whole; even then the exact link is shown to the user and added only on their decision. See [references/boundary.md](references/boundary.md#the-two-exceptions)
 
 ## Evidence, not provenance
