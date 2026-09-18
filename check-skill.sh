@@ -125,7 +125,10 @@ front=$(sed -n '2,/^---$/p' SKILL.md)
 front=$(printf '%s\n' "$front" | sed '$d')
 
 front_value() { # front_value KEY -> the scalar, quotes stripped, a block scalar joined
-  printf '%s\n' "$front" | awk -v key="$1" -v q="'" '
+  # <<< and not a printf into the pipe: the program below exits as soon as it has the
+  # value, and a producer whose reader stops early dies of SIGPIPE, which pipefail then
+  # makes the status of a pipeline that did its job
+  awk -v key="$1" -v q="'" '
     found { if ($0 ~ /^[ \t]+/) { sub(/^[ \t]+/, ""); out = out (out == "" ? "" : " ") $0; next } else exit }
     index($0, key ":") == 1 {
       found = 1
@@ -138,7 +141,7 @@ front_value() { # front_value KEY -> the scalar, quotes stripped, a block scalar
       if (substr(out, 1, 1) == q) out = substr(out, 2)
       if (substr(out, length(out)) == q) out = substr(out, 1, length(out) - 1)
       print out
-    }'
+    }' <<<"$front"
 }
 
 for key in name description license; do

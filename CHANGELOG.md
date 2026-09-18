@@ -4,6 +4,10 @@ Kept in the shape of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), d
 
 ## 2026-09-18
 
+### Fixed
+
+- `check-skill.sh` read SKILL.md's frontmatter through `printf … | awk`, and that awk program exits as soon as it has the value it was asked for. A producer whose reader stops early dies of SIGPIPE, and `pipefail` makes that the status of a pipeline that did its job, so the checker could fail on a frontmatter carrying every key it asks for. The text reaches awk through `<<<` now, which has no producer to kill
+
 ### Added
 
 - a rule that a caveat changing no action is provenance, in `SKILL.md` under the evidence heading, with `Confidence is not a bound` in [references/evidence.md](references/evidence.md) beside the rule about dates and tool versions it distinguishes itself from. A bound stays because crossing it changes what the agent does; the author's confidence never does, so a sample size or a `revisit if more data appears` is billed on every load and reads as permission to treat the rule as optional
