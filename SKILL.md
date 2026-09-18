@@ -22,6 +22,7 @@ A skill is loaded whole into every conversation that reaches for it, so each lin
 - **A rule is written as acting.** It keeps the rule, the mechanism, a minimal reproduction, the observable result and the verified primary source where one is needed. Discovery history, the names of repositories or checkers that once broke, incident dates and `used to` belong to git and the changelog. See [references/evidence.md](references/evidence.md)
 - **No pseudo-citation into another checkout.** `other-repo/path:line` assumes a checkout that may be absent and a line that drifts; a resolvable local link between two references is fine, because it lands on the one place that holds the mechanism
 - **A source is cited only after it was read.** A note that the source could not be reached does not verify the claim beside it. An unverified claim is removed or parked as an unfinished task outside the artifact. See [references/evidence.md](references/evidence.md#what-a-source-is)
+- **A caveat that changes no action is provenance.** Sample sizes, `derived from only a handful of examples`, `revisit if more data appears`: the rule is followed the same way whatever the answer, so the hedge costs every load and reads as permission to treat the rule as optional. A rule too weak to state plainly is narrowed until it is true, or cut. See [references/evidence.md](references/evidence.md#confidence-is-not-a-bound)
 - **A public skill never reads a private repository at runtime.** Local style first, then a self-contained default; a private path may only stand as a configuration the user owns
 
 ## Description and triggers
@@ -37,5 +38,14 @@ A skill is loaded whole into every conversation that reaches for it, so each lin
 - **An audit is one repository at a time, with a visible diff**, and it ends with the list of what was considered for removal and consciously kept. A mass edit erases authorship and exceptions; when one has happened, restore the baseline first
 - **A gate can guard the wrong copy, and a red tool can be wrong.** Before trusting either, check the second copy it compares against and the regex it was given. See [references/review.md](references/review.md#gates-and-tools)
 - **One evaluation pass at most.** Once a skill works in real use, the user judges by use; a second with-and-without run is tokens spent on a question already answered
+
+## Before a line goes into runtime
+
+The rules above are grouped by topic, and a line being written does not announce its topic. These questions are the other way in, by the moment the decision is made. Each routes to a rule above; a line that fails one is cut or moved, never softened
+
+- **What does this give the agent using the skill?** A line the reader cannot act on is not context, it is a cost paid on every load — [references/boundary.md](references/boundary.md)
+- **Does an ordinary invocation need it, or only someone working on the repository?** — [references/boundary.md](references/boundary.md)
+- **Is it true now, or is it the story of how it became true?** — [references/evidence.md](references/evidence.md)
+- **Does the tool's own help already say it?** — [references/boundary.md](references/boundary.md)
 
 Following the letter of a rule while breaking its point is breaking the rule; the rules are short so the point can be read

@@ -10,6 +10,16 @@ A skill is a rule, not a memory. A memory records where something happened; a ru
 - **A verified primary source**, when the rule rests on a document: the manual, the standard, the upstream policy, cited after it was read
 - **A measurement date or a tool version**, when it bounds the validity of a result: "under Jest 30", "measured on bash 3.2.57". A date that only says when a defect was found bounds nothing and goes
 
+## Confidence is not a bound
+
+A bound stays because crossing it changes what the agent does. "under Jest 30" says to re-measure on Jest 31; "measured on bash 3.2.57" says a newer bash may answer differently. The reader acts on the bound
+
+How sure the author was is not that. "derived from six examples", "the sample is thin", "revisit if more data turns up": whatever the answer, the rule is applied the same way, so the sentence buys nothing and is billed on every load. Worse, a hedge beside a rule reads as permission to treat the rule as optional, which is the opposite of what a rule resting on little evidence needs
+
+- **A rule too weak to state plainly is narrowed until it is true**, and cut when it cannot be narrowed. "close the file before renaming it" beats "it may help to close the file first"
+- **What the rule rests on is development text.** The corpus, how large it was, what was measured and what was read once: the README's development section, a maintainer document, or the commit that introduced the rule
+- **An open question is a task, not a runtime caveat.** "this reference is worth revisiting when more data appears" belongs where tasks are tracked, not in a file every invocation loads
+
 ## What goes to git and the changelog
 
 - Discovery history: which audit found the problem, in which session, on which day

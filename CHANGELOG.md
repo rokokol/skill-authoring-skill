@@ -6,6 +6,8 @@ Kept in the shape of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), d
 
 ### Added
 
+- a rule that a caveat changing no action is provenance, in `SKILL.md` under the evidence heading, with `Confidence is not a bound` in [references/evidence.md](references/evidence.md) beside the rule about dates and tool versions it distinguishes itself from. A bound stays because crossing it changes what the agent does; the author's confidence never does, so a sample size or a `revisit if more data appears` is billed on every load and reads as permission to treat the rule as optional
+- `Before a line goes into runtime`, four questions closing `SKILL.md`. The rules are grouped by topic and a line being written does not announce its topic, so the questions are the other way in, by the moment the decision is made; each routes to a rule above and states none of its own
 - the dev shell carries `jq`, ahead of the checker that will need it: the vendored `check-sh.sh` is moving off its awk lexer to reading the script it is given as a tree, out of `shfmt --to-json`, with jq flattening that tree into the rows its rules read. It lands before the cascade delivers that checker, so a new copy does not arrive to a missing tool and a red verify
 
 ## 2026-09-17
