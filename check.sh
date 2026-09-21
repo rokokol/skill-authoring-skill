@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Needs bash 3.2 and POSIX tools only, so behaviour mode runs unchanged under the bash a
-# macOS runner has at /bin/bash. This skill hands check-skill.sh to every other skill
+# Needs bash 3.2, so behaviour mode runs unchanged under the bash a macOS runner has at
+# /bin/bash. This skill hands check-skill.sh to every other skill
 # repository, and this is the gate that proves it before it goes out
 set -euo pipefail
 
