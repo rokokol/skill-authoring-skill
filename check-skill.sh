@@ -410,10 +410,9 @@ excused() { # excused FILE LINE ID -> 0 when an entry covers it, and that entry 
 }
 
 nwarn=0
-# A warning is human text and still goes to stdout, not stderr: the gates that run this
-# script on a copy with a planted defect read the first stderr line as the reason the copy
-# failed, and a warning there would be taken for it. DEVIATIONS.md in
-# https://github.com/rokokol/skill-authoring-skill holds the reasoning
+# A warning is human text and still goes to stdout, not stderr. Why that is worth the
+# oddity is in DEVIATIONS.md at https://github.com/rokokol/skill-authoring-skill, under
+# "Warnings go to stdout, findings to stderr"
 warn() { # warn FILE LINE ID WHAT
   ! excused "$1" "$2" "$3" || return 0
   nwarn=$((nwarn + 1))

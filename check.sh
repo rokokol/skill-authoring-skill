@@ -176,8 +176,8 @@ check_behaviour() {
     grep -qE "^  $id " <<<"$help" || fail "the warning id '$id' is printed by check-skill.sh but not named in its help"
   done
   # A warning is stdout only, with the exit code untouched, until --strict; then it is a
-  # finding on stderr and the run is red. The gates that run this script on a planted copy
-  # read the first stderr line as the reason the copy failed — DEVIATIONS.md
+  # finding on stderr and the run is red. DEVIATIONS.md has why, under "Warnings go to
+  # stdout"
   c="$work/warned"
   mkdir -p "$c"
   tar --exclude=.git -cf - . | tar -xf - -C "$c"
