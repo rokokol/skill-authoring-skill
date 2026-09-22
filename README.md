@@ -30,14 +30,21 @@ The same rules govern the agent's own instructions — `CLAUDE.md`, `AGENTS.md`,
 
 ## Install
 
-```sh
-git clone https://github.com/rokokol/skill-authoring-skill ~/Projects/skill-authoring
-ln -s ~/Projects/skill-authoring ~/.claude/skills/skill-authoring
+```bash
+npx skills add -g rokokol/skill-authoring-skill    # for you, everywhere
+npx skills add rokokol/skill-authoring-skill       # for the project you are standing in
 ```
 
-Or straight into the skills directory your agent reads:
+Claude Code also takes it as a plugin:
 
-```sh
+```
+/plugin marketplace add rokokol/skills
+/plugin install skill-authoring@rokokol-skills
+```
+
+or by hand — clone into whichever skills directory your agent reads:
+
+```bash
 git clone https://github.com/rokokol/skill-authoring-skill ~/.claude/skills/skill-authoring
 ```
 
