@@ -2,6 +2,14 @@
 
 Kept in the shape of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), dated rather than numbered, and with no `Unreleased` section: this repository is read at whatever revision you have checked out, so whatever is on the default branch is what every reader already has
 
+## 2026-09-22
+
+### Added
+
+- two rules over the readme's install section, in [references/description.md](references/description.md) under `Portability`: every channel a readme offers ends in the reader's own skills directory, and a channel the readme offers is a channel the repository carries. A clone into some other directory is readable only through a symlink, which is one skill in two places and a path named for the author's machine
+- `check-skill.sh` warns with `install-elsewhere` when a clone under the install heading lands outside a skills directory, and with `plugin-promise` when the readme offers `/plugin marketplace add` for this repository and `.claude-plugin/marketplace.json` is not in it. A marketplace in another repository is not decided: nothing here reaches the network
+- `check-skill.sh --install` prints the readme's install section for a repository, so the same three channels are generated rather than copied by hand. `--marketplace OWNER/REPO@NAME` names a marketplace living elsewhere; without it, the plugin block appears only where the repository carries the manifest itself, and the template's own output is read back through both new rules on every run
+
 ## 2026-09-18
 
 ### Changed
