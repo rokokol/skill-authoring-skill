@@ -54,7 +54,14 @@ fail() {
 # ships, while `env bash` finds whichever bash is first on PATH — Homebrew's 5 on a Mac
 # that has one
 skill() { "$BASH" "$HERE/check-skill.sh" "$@"; }
-checker() { "$BASH" "$HERE/check-sh.sh" "$@"; }
+# --bash-only where CHECK_BASH32 says this is the macOS runner: check-sh.sh reads the
+# script it is given through shfmt and jq, and a macOS image carries neither. The flag
+# drops the tree-reading checks and keeps the rest, which is the half this proof is about
+checker() {
+  local tree_flag=()
+  [[ -z "${CHECK_BASH32:-}" ]] || tree_flag=(--bash-only)
+  "$BASH" "$HERE/check-sh.sh" ${tree_flag[@]+"${tree_flag[@]}"} "$@"
+}
 # The same copy under the same bash and tools proves itself once per run — the self-test is
 # 5 s of a 5.1 s call — so every call after the first runs the checks alone, which is what
 # CHECK_SH_NESTED=1 is documented for
