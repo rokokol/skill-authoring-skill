@@ -2,6 +2,12 @@
 
 Kept in the shape of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), dated rather than numbered, and with no `Unreleased` section: this repository is read at whatever revision you have checked out, so whatever is on the default branch is what every reader already has
 
+## 2026-10-03
+
+### Fixed
+
+- `check-skill.sh` saw a code fence only at the start of a line, so a fence inside a block quote, such as `> ```markdown`, was not code to it. A link in the example inside that fence was checked as a live link and failed the run. A fence inside a quote is code now at any depth, and a line outside the quote ends it. Only a fence of the same character, at least as long and with no info string closes a block, so a `~~~` or a shorter fence inside a block no longer ends it. Every check that skips code reads one shared rule
+
 ## 2026-09-23
 
 ### Fixed
