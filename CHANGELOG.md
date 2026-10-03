@@ -7,6 +7,7 @@ Kept in the shape of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), d
 ### Fixed
 
 - `check-skill.sh` saw a code fence only at the start of a line, so a fence inside a block quote, such as `> ```markdown`, was not code to it. A link in the example inside that fence was checked as a live link and failed the run. A fence inside a quote is code now at any depth, and a line outside the quote ends it. Only a fence of the same character, at least as long and with no info string closes a block, so a `~~~` or a shorter fence inside a block no longer ends it. Every check that skips code reads one shared rule
+- `check-skill.sh` told an external link from a relative one by the pattern `[a-z]*://*`. Bash 3.2 compares a bracket range by the locale's collation, so the result depended on the locale, and a scheme in capitals such as `Https://` was relative under bash 5. The pattern is `[[:alpha:]]*://*` now, and a scheme in any case is external
 
 ## 2026-09-23
 

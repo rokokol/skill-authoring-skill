@@ -292,7 +292,7 @@ links_in() {
 resolve() {
   local doc="$1" target="$2" path
   case "$target" in
-    [a-z]*://* | mailto:* | //*) return 0 ;;
+    [[:alpha:]]*://* | mailto:* | //*) return 0 ;;
     /*) path=".$target" ;;
     *) path="$(dirname -- "$doc")/$target" ;;
   esac
@@ -559,7 +559,7 @@ for doc in "${runtime[@]}"; do
         [[ "$repo" == *-skill && "$repo" != "$name-skill" && "$repo" != "$name" ]] || continue
         warn "$doc" "$n" cross-skill-link "links to $repo; runtime never routes to a sibling skill"
         ;;
-      [a-z]*://* | mailto:* | //*) ;;
+      [[:alpha:]]*://* | mailto:* | //*) ;;
       *)
         # Only a climb can leave the repository, and resolving costs a subshell per link, so
         # a target with no .. in it is taken as inside without asking
