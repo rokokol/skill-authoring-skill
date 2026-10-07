@@ -198,6 +198,26 @@ desc_chars=$(($(front_value description | LC_ALL=C tr -d '\200-\277' | wc -c) - 
 ((desc_chars <= 1024)) ||
   fail "the description is $desc_chars characters long, over the 1024 an agent will load"
 
+# A lenient loader reads an unquoted value to the end of its line, and a strict one, such
+# as PyYAML or npx skills, refuses the whole frontmatter. A colon before a space or at the
+# end of a line opens a nested mapping, on the first line and on a continuation line alike,
+# and a value cannot open on a flow, alias, tag or reserved indicator, or on "- ", "? " or
+# ": ". Each shape was measured against PyYAML. Quoted and block values are another syntax,
+# and the lines under a key with no value are a nested mapping, so neither is read
+# shellcheck disable=SC2016 # the backtick is the reserved indicator, not a command substitution
+plain_bad=$(awk -v ind='[]{},*!%@`' '
+  /^[^ \t#]/ {
+    key = $0; sub(/:.*/, "", key)
+    v = $0; sub(/^[^:]*:[ \t]*/, "", v)
+    plain = v != "" && v !~ /^["\047|>]/
+    if (plain && (index(ind, substr(v, 1, 1)) || v ~ /^[-?:]([ \t]|$)/ || v ~ /:([ \t]|$)/)) { print key; exit }
+    next
+  }
+  plain && /:([ \t]|$)/ { print key; exit }
+' <<<"$front")
+[[ -z "$plain_bad" ]] ||
+  fail "SKILL.md's frontmatter: the unquoted $plain_bad value holds what a strict YAML loader reads as syntax — quote it"
+
 # ---- the readme's install section ------------------------------------------------------
 # Every channel ends in the reader's own skills directory, and the plugin block appears
 # only where the manifest it needs is in the repository, so the template cannot print a
@@ -823,6 +843,28 @@ expect_red "$c" "call it 'some-other-name'" "a name the symlink disagrees with" 
 c=$(copy long-description)
 sed "s/^description:.*/description: $(printf '%1100s' '' | tr ' ' x)/" SKILL.md >"$c/SKILL.md"
 expect_red "$c" "characters long" "an oversized description" "${nargs[@]+"${nargs[@]}"}"
+
+# An unquoted value that a strict YAML loader rejects: a colon and a space on the first
+# line, the same on a continuation line, and an indicator that opens the value
+c=$(copy plain-colon)
+sed 's/^description:.*/description: What it is. Use when needed. Triggers: alpha, beta/' SKILL.md >"$c/SKILL.md"
+expect_red "$c" "strict YAML loader" "an unquoted description holding a colon and a space" "${nargs[@]+"${nargs[@]}"}"
+c=$(copy plain-colon-continued)
+sed 's/^description:.*/description: What it is. Use when needed.\
+  Triggers: alpha, beta/' SKILL.md >"$c/SKILL.md"
+expect_red "$c" "strict YAML loader" "a colon and a space on an unquoted continuation line" "${nargs[@]+"${nargs[@]}"}"
+c=$(copy plain-indicator)
+sed 's/^description:.*/description: [draft] What it is. Use when needed/' SKILL.md >"$c/SKILL.md"
+expect_red "$c" "strict YAML loader" "an unquoted description opening on an indicator" "${nargs[@]+"${nargs[@]}"}"
+# What a strict loader accepts stays quiet: a colon with no space after it, a quoted
+# value holding one, and a nested mapping, whose colons are keys rather than text
+c=$(copy plain-quiet)
+sed 's|^description:.*|description: What it is, as https://example.org/a:b names it. Use when needed\
+compatibility: "Needs: bash 3.2"\
+metadata:\
+  author: someone|' SKILL.md >"$c/SKILL.md"
+nested "$c" "${nargs[@]+"${nargs[@]}"}" >/dev/null 2>&1 ||
+  fail "a colon with no space after it, or a nested mapping, was read as a value a strict YAML loader rejects"
 
 c=$(copy orphan)
 mkdir -p "$c/references"

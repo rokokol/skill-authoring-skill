@@ -2,6 +2,12 @@
 
 Kept in the shape of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), dated rather than numbered, and with no `Unreleased` section: this repository is read at whatever revision you have checked out, so whatever is on the default branch is what every reader already has
 
+## 2026-10-08
+
+### Added
+
+- `check-skill.sh` fails on an unquoted frontmatter value that a strict YAML loader such as PyYAML or `npx skills` refuses. A colon before a space or at the end of a line opens a nested mapping, on the first line and on a continuation line alike, and a value cannot open on `[`, `]`, `{`, `}`, `,`, `*`, `!`, `%`, `@`, a backtick, `- `, `? ` or `: `. A lenient loader still read such a skill, and the check was green on it
+
 ## 2026-10-03
 
 ### Fixed
