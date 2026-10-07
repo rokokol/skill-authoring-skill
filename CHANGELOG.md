@@ -7,6 +7,7 @@ Kept in the shape of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), d
 ### Added
 
 - `check-skill.sh` fails on an unquoted frontmatter value that a strict YAML loader such as PyYAML or `npx skills` refuses. A colon before a space or at the end of a line opens a nested mapping, on the first line and on a continuation line alike, and a value cannot open on `[`, `]`, `{`, `}`, `,`, `*`, `!`, `%`, `@`, a backtick, `- `, `? ` or `: `. A lenient loader still read such a skill, and the check was green on it
+- a `plain-truncated` warning: an unquoted frontmatter value that a strict YAML loader reads without failing, only shorter. A `#` after a space opens a comment, also on a continuation line, a leading `#` leaves the value empty, and a leading `&` names an anchor. The skill loads, without the triggers after that point
 
 ## 2026-10-03
 

@@ -72,6 +72,8 @@ The warnings, by the id each line carries:
                      review happens when the user asks, not on the skill's say-so
   unverified-source  a fetch-failure note beside a claim
   trigger-duplicate  a trigger listed twice in the description
+  plain-truncated    an unquoted frontmatter value that a strict YAML loader cuts short:
+                     a # after a space, or a # or & first
   readme-badge       the readme's badge row does not open with the Agent Skill badge
   harness-badge      the readme carries a harness badge, claiming a dependency
   install-elsewhere  the readme's Install section clones the skill outside a skills
@@ -607,6 +609,23 @@ if [[ "$triggers" != "$desc" ]]; then
     LC_ALL=C tr '[:upper:]' '[:lower:]' | grep -v '^$' | LC_ALL=C sort | LC_ALL=C uniq -d)
 fi
 
+# An unquoted value that a strict YAML loader reads without failing, only shorter: a # after
+# a space opens a comment, on the first line and on a continuation line alike, a leading #
+# leaves the value empty, and a leading & names an anchor that takes the first word. The
+# skill still loads, without the triggers that came after. The frontmatter opens on line 2
+while IFS=$'\t' read -r tline tkey; do
+  warn SKILL.md "$tline" plain-truncated "a strict YAML loader cuts the unquoted $tkey value short here — quote it"
+done < <(awk '
+  /^[^ \t#]/ {
+    key = $0; sub(/:.*/, "", key)
+    v = $0; sub(/^[^:]*:[ \t]*/, "", v)
+    plain = v != "" && v !~ /^["\047|>]/
+    if (plain && (v ~ /^[#&]/ || v ~ /[ \t]#/)) print NR + 1 "\t" key
+    next
+  }
+  plain && /^[ \t]+([#]|.*[ \t]#)/ { print NR + 1 "\t" key }
+' <<<"$front")
+
 # The readme's badge row says what the skill depends on. It opens with the Agent Skill
 # badge, since the format is the open standard every harness reads, and a harness badge
 # beside it claims a dependency the skill does not have
@@ -1016,6 +1035,23 @@ c=$(copy trigger-twice-excused)
 sed 's/^description:.*/description: "What it is. Use when needed. Triggers: alpha, beta, Alpha."/' SKILL.md >"$c/SKILL.md"
 excuse "$c" 'trigger-duplicate SKILL.md'
 expect_quiet "$c" "SKILL.md:$n: trigger-duplicate" "an excused duplicate trigger"
+
+# An unquoted value a strict loader shortens without failing: a comment after a space, the
+# same on a continuation line, and an anchor in front. A # with no space before it is text
+c=$(copy plain-comment)
+sed 's/^description:.*/description: What it is. Use when needed #alpha, beta/' SKILL.md >"$c/SKILL.md"
+n=$(grep -n '^description:' "$c/SKILL.md" | sed -n '1s/:.*//p')
+expect_warn "$c" "SKILL.md:$n: plain-truncated" "an unquoted description with a comment in it"
+c=$(copy plain-comment-continued)
+sed 's/^description:.*/description: What it is. Use when needed\
+  #alpha, beta/' SKILL.md >"$c/SKILL.md"
+expect_warn "$c" "SKILL.md:$((n + 1)): plain-truncated" "a comment opening an unquoted continuation line"
+c=$(copy plain-anchor)
+sed 's/^description:.*/description: \&what it is. Use when needed/' SKILL.md >"$c/SKILL.md"
+expect_warn "$c" "SKILL.md:$n: plain-truncated" "an unquoted description opening on an anchor"
+c=$(copy plain-hash-quiet)
+sed 's/^description:.*/description: What it is, in C# and F#. Use when needed/' SKILL.md >"$c/SKILL.md"
+expect_quiet "$c" "SKILL.md:$n: plain-truncated" "a # with no space before it"
 
 c=$(copy badge-order)
 printf '# a skill\n\n![Bash](https://img.shields.io/badge/Bash-4EAA25?style=flat)\n[![Agent Skill](https://img.shields.io/badge/Agent_Skill-6E56CF?style=flat)](https://agentskills.io)\n' >"$c/README.md"
