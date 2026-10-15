@@ -2,6 +2,12 @@
 
 Kept in the shape of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), dated rather than numbered, and with no `Unreleased` section: this repository is read at whatever revision you have checked out, so whatever is on the default branch is what every reader already has
 
+## 2026-10-15
+
+### Changed
+
+- `check-skill.sh` no longer fails on a SKILL.md frontmatter without `license`. The Agent Skills specification marks the field optional, and 323 of the 324 skills in the local Claude Code plugin cache carry none. A missing license is now the `missing-license` warning, which `check-skill.allow` excuses with `missing-license SKILL.md` like any other warning. An empty `license` value is not checked
+
 ## 2026-10-08
 
 ### Added
